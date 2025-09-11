@@ -1,0 +1,32 @@
+{
+    "name": "nodejs-mastery",
+    "version": "1.0.0",
+    "description": "Node.js 핵심 개념과 고급 기능 학습 프로젝트",
+    "type": "module",
+    "scripts": {
+        "test": "jest",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "start:commonjs": "node src/modules/commonjs/main.cjs",
+        "start:esm": "node src/modules/esm/main.js",
+        "start:async": "node src/async/main.js"
+    },
+    "keywords": [
+        "nodejs",
+        "javascript",
+        "backend",
+        "server"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-node": "^11.1.0",
+        "jest": "^29.7.0",
+        "prettier": "^3.2.5"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}
