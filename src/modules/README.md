@@ -1,9 +1,25 @@
-# Node.js 모듈 시스템 비교
+# Node.js 모듈 시스템
+
+## 목차
+1. [모듈 시스템 개요](#모듈-시스템-개요)
+2. [CommonJS vs ES Modules](#commonjs-vs-es-modules)
+3. [모듈 스코프](#모듈-스코프)
+4. [순환 참조](#순환-참조)
+5. [모범 사례](#모범-사례)
+
+## 모듈 시스템 개요
+
+Node.js의 모듈 시스템은 코드를 재사용 가능한 단위로 분리하고 구성하는 메커니즘을 제공합니다.
+
+### 모듈의 장점
+- **캡슐화**: 코드를 비공개로 유지
+- **재사용성**: 코드 재사용 용이
+- **의존성 관리**: 명확한 의존성 선언
+- **네임스페이스**: 전역 스코프 오염 방지
 
 ## CommonJS vs ES Modules
 
-### 1. CommonJS (전통적인 Node.js 모듈 시스템)
-
+### CommonJS (Node.js 전통적인 모듈 시스템)
 ```javascript
 // 내보내기
 module.exports = MyClass;
@@ -12,68 +28,126 @@ exports.myFunction = function() {};
 
 // 가져오기
 const MyClass = require('./my-class');
-// 또는
 const { myFunction } = require('./module');
 ```
 
 특징:
-- 동기적으로 동작
-- Node.js의 기본 모듈 시스템
-- 런타임에 모듈 해석
-- 더 유연한 모듈 로딩 (조건부 require 가능)
+- 동기적 로딩
+- Node.js 기본 지원
+- 동적 모듈 로딩 가능
+- 파일 확장자 생략 가능
 
-### 2. ES Modules (ECMAScript 표준 모듈 시스템)
-
+### ES Modules (ECMAScript 표준)
 ```javascript
 // 내보내기
 export default MyClass;
-// 또는
 export const myFunction = () => {};
 
 // 가져오기
 import MyClass from './my-class.js';
-// 또는
 import { myFunction } from './module.js';
 ```
 
 특징:
-- 정적 모듈 구조
-- 파일 확장자 필수 (.js)
-- 비동기 모듈 로딩 지원
+- 정적 분석 가능
+- Tree Shaking 지원
 - Top-level await 지원
-- Tree-shaking 가능 (더 나은 번들링)
+- 브라우저 호환성
 
-## 주요 차이점
+## 모듈 스코프
 
-1. 문법
-   - CommonJS: require/module.exports
-   - ESM: import/export
+각 모듈은 자체 스코프를 가집니다:
 
-2. 로딩
-   - CommonJS: 동기적
-   - ESM: 비동기적 (더 나은 성능)
+```javascript
+// module-a.js
+const privateVar = 'private';
+export const publicVar = 'public';
 
-3. 파일 확장자
-   - CommonJS: 생략 가능
-   - ESM: 필수
+// module-b.js
+import { publicVar } from './module-a.js';
+console.log(publicVar); // 'public'
+console.log(privateVar); // ReferenceError
+```
 
-4. 호이스팅
-   - CommonJS: 런타임에 평가
-   - ESM: 모듈 호이스팅 (정적 분석)
+### 전역 객체 접근
+```javascript
+// Node.js 전역 객체
+console.log(global); // Node.js
+console.log(globalThis); // 표준화된 전역 객체
+```
 
-## 예제 실행 방법
+## 순환 참조
+
+순환 참조 처리 방법:
+
+```javascript
+// a.js
+export let b;
+export function setB(value) {
+    b = value;
+}
+
+// b.js
+import { setB } from './a.js';
+const b = { value: 'B' };
+setB(b);
+```
+
+## 모범 사례
+
+1. 명확한 의존성 선언
+```javascript
+// 좋은 예
+import { specific } from './module.js';
+
+// 피해야 할 예
+import * as everything from './module.js';
+```
+
+2. 단일 책임 원칙
+```javascript
+// 좋은 예
+// user-model.js
+export class User { ... }
+
+// user-service.js
+export class UserService { ... }
+```
+
+3. 인터페이스 명확성
+```javascript
+// 좋은 예
+export interface UserRepository {
+    findById(id: string): Promise<User>;
+    save(user: User): Promise<void>;
+}
+```
+
+4. 적절한 파일 구조
+```
+src/
+  ├── models/
+  │   └── user.js
+  ├── services/
+  │   └── user-service.js
+  └── repositories/
+      └── user-repository.js
+```
+
+## 예제 실행
 
 ```bash
-# CommonJS 버전 실행
+# CommonJS 예제 실행
 npm run start:commonjs
 
-# ES 모듈 버전 실행
+# ES Modules 예제 실행
 npm run start:esm
 ```
 
-## 권장 사항
+## 학습 포인트
 
-- 새로운 프로젝트: ES Modules 사용 권장
-- 기존 프로젝트: 프로젝트 상황에 따라 선택
-- 호환성 필요: CommonJS 사용
-- 최신 기능 필요: ES Modules 사용
+1. 모듈 시스템의 차이점 이해
+2. 적절한 모듈 시스템 선택
+3. 모듈 스코프와 전역 객체
+4. 의존성 관리와 순환 참조
+5. 모범 사례 적용
