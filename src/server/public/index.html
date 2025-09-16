@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 파일 공유</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .chat-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message-list {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>실시간 파일 공유 테스트</h1>
+
+    <div class="chat-container">
+        <h2>채팅</h2>
+        <div id="messageList" class="message-list"></div>
+        <input type="text" id="messageInput" placeholder="메시지 입력">
+        <button onclick="sendMessage()">전송</button>
+    </div>
+
+    <div class="file-container">
+        <h2>파일 업로드</h2>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">업로드</button>
+    </div>
+
+    <div class="file-list">
+        <h2>파일 목록</h2>
+        <button onclick="refreshFileList()">새로고침</button>
+        <div id="fileList"></div>
+    </div>
+
+    <script>
+        // 소켓 연결
+        const socket = io('http://localhost:3000');
+        const roomId = 'test-room';
+
+        socket.on('connect', () => {
+            console.log('서버에 연결됨');
+            socket.emit('join_room', roomId);
+            appendMessage('시스템', '채팅방에 연결되었습니다.');
+        });
+
+        socket.on('message', (data) => {
+            appendMessage(data.socketId, data.content);
+        });
+
+        socket.on('file_share', (data) => {
+            appendMessage('시스템', `새 파일이 공유됨: ${data.filename}`);
+            refreshFileList();
+        });
+
+        // 메시지 전송
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (content) {
+                socket.emit('message', { roomId, content });
+                input.value = '';
+            }
+        }
+
+        // 메시지 표시
+        function appendMessage(sender, content) {
+            const messageList = document.getElementById('messageList');
+            const message = document.createElement('div');
+            message.textContent = `${sender}: ${content}`;
+            messageList.appendChild(message);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        // 파일 업로드
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                socket.emit('file_share', {
+                    roomId,
+                    filename: result.file.filename
+                });
+
+                fileInput.value = '';
+                refreshFileList();
+            } catch (error) {
+                console.error('파일 업로드 실패:', error);
+            }
+        }
+
+        // 파일 목록 갱신
+        async function refreshFileList() {
+            try {
+                const response = await fetch('/api/files/list');
+                const files = await response.json();
+
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = files.map(file => `
+                    <div class="file-item">
+                        <div>${file.filename}</div>
+                        <div>크기: ${formatFileSize(file.size)}</div>
+                        <div>생성일: ${new Date(file.createdAt).toLocaleString()}</div>
+                        <a href="/api/files/download/${file.filename}" target="_blank">다운로드</a>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('파일 목록 조회 실패:', error);
+            }
+        }
+
+        // 파일 크기 포맷
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 초기 파일 목록 로드
+        refreshFileList();
+    </script>
+</body>
+
+</html>

@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // 정적 파일 제공
 app.use('/uploads', express.static('uploads'));
+app.use(express.static('src/server/public'));
 
 // 라우터 설정
 app.use('/api/files', fileRouter);
